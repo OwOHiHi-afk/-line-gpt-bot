@@ -1,35 +1,36 @@
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
 import os
 
 app = Flask(__name__)
 
-# 👉 把這裡換成你自己的金鑰
-LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+# 環境變數設定（從 Render 的 Environment Variables 讀進來）
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 openai.api_key = OPENAI_API_KEY
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
-    return "LINE + GPT 模擬器已啟動"
+    return "LINE GPT Bot is running!"
 
-@app.route("/callback", methods=['POST'])
+@app.route("/callback", methods=["POST"])
 def callback():
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
 
     try:
         handler.handle(body, signature)
-    except:
+    except InvalidSignatureError:
         abort(400)
 
-    return 'OK'
+    return "OK"
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -37,11 +38,10 @@ def handle_message(event):
 
     # 自動判斷是否觸發模擬情境
     if "模擬" in user_input:
-        system_prompt = (
-            "你是一位法律教育導師，幫助使用者識別網路互動中的法律風險。"
-            "請產生：1. 情境描述（2段）2. 選項（3～4個，附emoji）3. 每個選項的風險說明。"
-            "語氣要中立親切，不要開場白。"
-        )
+        system_prompt = """你現在是一位法律教育講師，幫助使用者識別網路互動中的法律風險。
+請產出三個情境類似（但不同）的選項（3～4個附emoji）
+每個選項的風險請說明清楚，不要用問句。
+"""
     else:
         system_prompt = "請使用教育性語氣回應以下內容："
 
@@ -53,10 +53,10 @@ def handle_message(event):
         ]
     )
 
-    reply = response.choices[0].message.content
+    reply_text = response.choices[0].message.content
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text=reply)
+        TextSendMessage(text=reply_text)
     )
 
 if __name__ == "__main__":

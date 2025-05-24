@@ -7,9 +7,9 @@ import os
 app = Flask(__name__)
 
 # 👉 把這裡換成你自己的金鑰
-LINE_CHANNEL_ACCESS_TOKEN = "你的 Access Token"
-LINE_CHANNEL_SECRET = "你的 Secret"
-OPENAI_API_KEY = "你的 OpenAI API Key"
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)

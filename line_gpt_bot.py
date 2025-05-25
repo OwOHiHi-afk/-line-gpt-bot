@@ -34,19 +34,20 @@ def callback():
 def handle_message(event):
     user_input = event.message.text
 
-    system_prompt = "你是一位網路法律教育講師，幫助使用者識別網路互動中的法律風險。請產生 1 個情境模擬（2 句），選項（3～4個+附emoji），每個選項的風險簡要說明，不要冗長。"
+    system_prompt = "你是一位法律教育導師，幫助使用者識別網路互動中的法律風險。"
 
     try:
-        response = openai.ChatCompletion.create(
-            model="openai/gpt-3.5-turbo",
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
             ]
         )
-        reply_text = response['choices'][0]['message']['content']
+        reply_text = response.choices[0].message.content.strip()
+
     except Exception as e:
-        reply_text = f"⚠️ 系統錯誤：{str(e)}"
+        reply_text = f"⚠️ 發生錯誤：{str(e)}"
 
     line_bot_api.reply_message(
         event.reply_token,

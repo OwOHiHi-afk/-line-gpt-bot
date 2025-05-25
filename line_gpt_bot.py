@@ -7,9 +7,23 @@ import os
 
 app = Flask(__name__)
 
-line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 環境變數（來自 Render 的設定）
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
+
+# ✅ 使用 OpenAI 免費 Proxy API（ChatAnywhere.tech）
+client = OpenAI(
+    api_key=OPENAI_API_KEY,
+    base_url="https://api.chatanywhere.tech/v1"
+)
+
+@app.route("/", methods=["GET"])
+def home():
+    return "LINE GPT Bot is running!"
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -28,13 +42,14 @@ def handle_message(event):
     user_input = event.message.text
 
     if "模擬" in user_input:
-        system_prompt = """你是一位法律教育講師，幫助使用者識別網路互動中的法律風險。
-請產出三個選項情境（建議 3～4 個字並附上 emoji），每個選項後面附一句法律風險分析。"""
+        system_prompt = """你現在是一位法律教育講師，幫助使用者識別網路互動中的法律風險。
+請產出三個情境選項（3～4個附 emoji），並說明每個選項的風險。
+"""
     else:
-        system_prompt = "請用教育性的語氣回應使用者："
+        system_prompt = "請使用教育性語氣回應以下內容："
 
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-3.5-turbo",  # GPT-4o 可用但不穩定，建議測試用這個
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_input}
@@ -51,3 +66,4 @@ def handle_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+    
